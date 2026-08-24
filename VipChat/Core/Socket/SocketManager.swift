@@ -154,9 +154,14 @@ final class SocketManager {
         }
     }
 
+    // socket.io payloads are [String: Any]; use this for nullable fields so a nil
+    // becomes JSON null (NSNull) instead of tripping Swift's dictionary inference.
+    private func orNull(_ v: String?) -> Any { if let v { return v } else { return NSNull() } }
+
     // MARK: emits
     func initConversation(customerId: String, branchId: String?) {
-        socket?.emit("conversation:init", ["customerId": customerId, "branchId": branchId ?? NSNull()])
+        let payload: [String: Any] = ["customerId": customerId, "branchId": orNull(branchId)]
+        socket?.emit("conversation:init", payload)
     }
     func sendMessage(conversationId: String, text: String? = nil, type: String = "text",
                      fileUrl: String? = nil, fileName: String? = nil, fileSize: Int? = nil,
@@ -181,9 +186,12 @@ final class SocketManager {
     func startCall(_ conversationId: String) { socket?.emit("call:start", ["conversationId": conversationId]) }
     func sendOffer(target: String, sdp: String) { socket?.emit("call:offer", ["targetSocket": target, "offer": ["type": "offer", "sdp": sdp]]) }
     func sendIce(target: String, candidate: String, sdpMid: String?, sdpMLineIndex: Int) {
-        socket?.emit("call:ice-candidate", ["targetSocket": target, "candidate": ["candidate": candidate, "sdpMid": sdpMid ?? NSNull(), "sdpMLineIndex": sdpMLineIndex]])
+        let cand: [String: Any] = ["candidate": candidate, "sdpMid": orNull(sdpMid), "sdpMLineIndex": sdpMLineIndex]
+        let payload: [String: Any] = ["targetSocket": target, "candidate": cand]
+        socket?.emit("call:ice-candidate", payload)
     }
     func endCall(target: String?, conversationId: String) {
-        socket?.emit("call:end", ["targetSocket": target ?? NSNull(), "conversationId": conversationId])
+        let payload: [String: Any] = ["targetSocket": orNull(target), "conversationId": conversationId]
+        socket?.emit("call:end", payload)
     }
 }
