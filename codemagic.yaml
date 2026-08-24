@@ -10,6 +10,36 @@
 #   4. Trigger a build. First build → TestFlight; promote to App Store when ready.
 
 workflows:
+  # FREE path: compiles for the iOS Simulator — NO signing, NO Apple account needed.
+  # Produces VipChat.app (zipped); upload it to appetize.io to run the app in a
+  # browser and confirm the UI/flows before spending on Apple's $99.
+  ios-simulator-preview:
+    name: VIP Chat iOS (Simulator preview)
+    max_build_duration: 45
+    environment:
+      xcode: latest
+    scripts:
+      - name: Generate project
+        script: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build for simulator (unsigned)
+        script: |
+          xcodebuild build \
+            -project VipChat.xcodeproj \
+            -scheme VipChat \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath build
+      - name: Zip the .app for Appetize upload
+        script: |
+          cd build/Build/Products/Debug-iphonesimulator
+          zip -r VipChat-sim.zip VipChat.app
+    artifacts:
+      - build/Build/Products/Debug-iphonesimulator/VipChat-sim.zip
+
   ios-release:
     name: VIP Chat iOS
     max_build_duration: 60

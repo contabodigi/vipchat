@@ -20,7 +20,7 @@ enum MetaEvents {
     static func logLead(eventId: String?) {
         guard initialized else { return }
         var params: [AppEvents.ParameterName: Any] = [:]
-        if let eventId { params[.orderID] = eventId }
+        if let eventId { params[AppEvents.ParameterName("event_id")] = eventId }
         AppEvents.shared.logEvent(AppEvents.Name("Lead"), parameters: params)
     }
 }

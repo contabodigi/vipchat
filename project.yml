@@ -4,7 +4,7 @@ name: VipChat
 options:
   bundleIdPrefix: live.vipchat
   deploymentTarget:
-    iOS: "15.0"
+    iOS: "16.0"   # PhotosPicker (media attach) requires iOS 16; ~all active iPhones in 2026
   createIntermediateGroups: true
 
 packages:
