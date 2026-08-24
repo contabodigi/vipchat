@@ -1,0 +1,72 @@
+# XcodeGen spec — the cloud build runs `xcodegen generate` to produce VipChat.xcodeproj
+# from this file, so no hand-maintained .xcodeproj (and no Mac) is needed to edit the app.
+name: VipChat
+options:
+  bundleIdPrefix: live.vipchat
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+
+packages:
+  SocketIO:
+    url: https://github.com/socketio/socket.io-client-swift
+    from: "16.1.0"
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "11.0.0"
+  FacebookSDK:
+    url: https://github.com/facebook/facebook-ios-sdk
+    from: "17.0.0"
+  WebRTC:
+    # Maintained prebuilt WebRTC binary via SPM (Google's own pod is abandoned).
+    url: https://github.com/stasel/WebRTC
+    from: "120.0.0"
+
+targets:
+  VipChat:
+    type: application
+    platform: iOS
+    sources:
+      - path: VipChat
+    dependencies:
+      - package: SocketIO
+        product: SocketIO
+      - package: Firebase
+        product: FirebaseMessaging
+      - package: FacebookSDK
+        product: FacebookCore
+      - package: WebRTC
+        product: WebRTC
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: live.vipchat.app
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        DEVELOPMENT_TEAM: "$(DEVELOPMENT_TEAM)"   # injected by Codemagic signing
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"               # iPhone only
+        ENABLE_BITCODE: NO
+    info:
+      path: VipChat/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: VIP Chat
+        # Modern launch screen (no storyboard): brand-green background + RB splash logo.
+        UILaunchScreen:
+          UIColorName: BrandGreen
+          UIImageName: SplashLogo
+          UIImageRespectsSafeAreaInsets: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSMicrophoneUsageDescription: "Microphone access is needed for voice notes and support calls."
+        NSPhotoLibraryUsageDescription: "Photo access lets you share images and files in chat."
+        NSCameraUsageDescription: "Camera access lets you send photos in chat."
+        UIBackgroundModes:
+          - audio            # keep a support call alive when backgrounded
+          - remote-notification
+        # Facebook SDK: real values are set PROGRAMMATICALLY from remote config
+        # (see MetaEvents), so no FacebookAppID/ClientToken baked here.
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: VipChat/Resources/VipChat.entitlements
+      properties:
+        aps-environment: production

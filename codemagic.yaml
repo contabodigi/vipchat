@@ -1,0 +1,51 @@
+# Codemagic CI — builds, signs, and ships the iOS app entirely in the cloud.
+# No Mac required: macOS runners compile it; signing is automatic via an
+# App Store Connect API key you add in the Codemagic UI.
+#
+# Setup (one time, all in the browser):
+#   1. Push this project to a Git repo, connect it in Codemagic.
+#   2. Codemagic → Teams/Integrations → App Store Connect: add your API key
+#      (Issuer ID, Key ID, .p8). Codemagic then manages certs/profiles for you.
+#   3. Add the group 'appstore' vars if you customize; otherwise defaults work.
+#   4. Trigger a build. First build → TestFlight; promote to App Store when ready.
+
+workflows:
+  ios-release:
+    name: VIP Chat iOS
+    max_build_duration: 60
+    environment:
+      xcode: latest
+      cocoapods: default
+      groups:
+        - appstore            # holds APP_STORE_CONNECT_* if you set them as vars
+      vars:
+        BUNDLE_ID: "live.vipchat.app"
+        XCODE_PROJECT: "VipChat.xcodeproj"
+        XCODE_SCHEME: "VipChat"
+    scripts:
+      - name: Install XcodeGen and generate the project
+        script: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Set up code signing (automatic, via App Store Connect API key)
+        script: |
+          # Codemagic fetches/creates the distribution cert + provisioning profile
+          # from the API key configured in the UI.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Resolve Swift packages & build
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration       # uses the API key added in the Codemagic UI
+        submit_to_testflight: true
+        # Flip to true (and add release info) when ready to push to the store:
+        submit_to_app_store: false
