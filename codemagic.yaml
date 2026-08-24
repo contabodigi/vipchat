@@ -25,6 +25,7 @@ workflows:
           xcodegen generate
       - name: Build for simulator (unsigned)
         script: |
+          set +e
           xcodebuild build \
             -project VipChat.xcodeproj \
             -scheme VipChat \
@@ -32,7 +33,13 @@ workflows:
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
-            -derivedDataPath build
+            -derivedDataPath build 2>&1 | tee /tmp/xcodebuild.log
+          CODE=${PIPESTATUS[0]}
+          echo ""
+          echo "==================== VIPCHAT COMPILE ERRORS ===================="
+          grep -E "error:" /tmp/xcodebuild.log | grep "/VipChat/" || echo "(no app-source error: lines found)"
+          echo "==============================================================="
+          exit $CODE
       - name: Zip the .app for Appetize upload
         script: |
           cd build/Build/Products/Debug-iphonesimulator
